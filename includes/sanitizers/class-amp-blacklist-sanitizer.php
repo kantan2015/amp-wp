@@ -13,13 +13,14 @@ class AMP_Blacklist_Sanitizer extends AMP_Base_Sanitizer {
 		$blacklisted_tags = $this->get_blacklisted_tags();
 		$blacklisted_attributes = $this->get_blacklisted_attributes();
 		$blacklisted_protocols = $this->get_blacklisted_protocols();
+		$ignore_tags = $this->get_ignore_tags();
 
 		$body = $this->dom->getElementsByTagName( 'body' )->item( 0 );
 		$this->strip_tags( $body, $blacklisted_tags );
-		$this->strip_attributes_recursive( $body, $blacklisted_attributes, $blacklisted_protocols );
+		$this->strip_attributes_recursive( $body, $blacklisted_attributes, $blacklisted_protocols, $ignore_tags);
 	}
 
-	private function strip_attributes_recursive( $node, $bad_attributes, $bad_protocols ) {
+	private function strip_attributes_recursive( $node, $bad_attributes, $bad_protocols, $ignore_tags) {
 		if ( $node->nodeType !== XML_ELEMENT_NODE ) {
 			return;
 		}
@@ -47,11 +48,17 @@ class AMP_Blacklist_Sanitizer extends AMP_Base_Sanitizer {
 						continue;
 					}
 				}
+				if (in_array( $node->nodeName, $ignore_tags )) {
+					continue;
+				}
+				if ( 'width' === $attribute_name ||'height' === $attribute_name) {
+					$node->removeAttribute( $attribute_name );
+					continue;
+				}
 			}
 		}
-
 		foreach ( $node->childNodes as $child_node ) {
-			$this->strip_attributes_recursive( $child_node, $bad_attributes, $bad_protocols );
+			$this->strip_attributes_recursive( $child_node, $bad_attributes, $bad_protocols, $ignore_tags);
 		}
 	}
 
@@ -96,6 +103,15 @@ class AMP_Blacklist_Sanitizer extends AMP_Base_Sanitizer {
 			//'video',
 			//'audio',
 			//'iframe',
+		);
+	}
+
+	private function get_ignore_tags() {
+		return array(
+			'img',
+			'video',
+			'audio',
+			'iframe',
 		);
 	}
 
