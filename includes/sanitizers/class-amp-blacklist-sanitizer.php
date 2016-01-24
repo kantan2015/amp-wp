@@ -113,6 +113,10 @@ class AMP_Blacklist_Sanitizer extends AMP_Base_Sanitizer {
 			'audio',
 			'iframe',
 			'amp-ad',
+			'amp-img',
+			'amp-video',
+			'amp-audio',
+			'amp-iframe',
 		);
 	}
 
