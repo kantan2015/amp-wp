@@ -1,6 +1,6 @@
 <?php
 
-require_once( dirname( __FILE__ ) . '/class-amp-base-embed-handler.php' );
+require_once( AMP__DIR__ . '/includes/embeds/class-amp-base-embed-handler.php' );
 
 class AMP_Vine_Embed_Handler extends AMP_Base_Embed_Handler {
 	const URL_PATTERN = '#https?://vine\.co/v/([^/?]+)#i';
@@ -38,17 +38,19 @@ class AMP_Vine_Embed_Handler extends AMP_Base_Embed_Handler {
 		) );
 
 		if ( empty( $args['vine_id'] ) ) {
-			return AMP_HTML_Utils::build_tag( 'a', array( 'href' => esc_url( $args['url'] ), 'class' => 'amp-wp-fallback' ), esc_html( $args['url'] ) );
+			return AMP_HTML_Utils::build_tag( 'a', array( 'href' => esc_url( $args['url'] ), 'class' => 'amp-wp-embed-fallback' ), esc_html( $args['url'] ) );
 		}
 
 		$this->did_convert_elements = true;
 
 		return AMP_HTML_Utils::build_tag(
 			'amp-vine',
-			wp_parse_args( array(
+			array(
 				'data-vineid' => $args['vine_id'],
 				'layout' => 'responsive',
-			), $this->args )
+				'width' => $this->args['width'],
+				'height' => $this->args['height'],
+			)
 		);
 	}
 }

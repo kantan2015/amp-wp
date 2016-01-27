@@ -1,6 +1,6 @@
 <?php
 
-require_once( dirname( __FILE__ ) . '/class-amp-base-sanitizer.php' );
+require_once( AMP__DIR__ . '/includes/sanitizers/class-amp-base-sanitizer.php' );
 
 /**
  * Strips blacklisted tags and attributes from content.
@@ -9,13 +9,13 @@ require_once( dirname( __FILE__ ) . '/class-amp-base-sanitizer.php' );
  *     https://github.com/ampproject/amphtml/blob/master/spec/amp-html-format.md#html-tags
  */
 class AMP_Blacklist_Sanitizer extends AMP_Base_Sanitizer {
-	public function sanitize( $amp_attributes = array() ) {
+	public function sanitize() {
 		$blacklisted_tags = $this->get_blacklisted_tags();
 		$blacklisted_attributes = $this->get_blacklisted_attributes();
 		$blacklisted_protocols = $this->get_blacklisted_protocols();
 		$ignore_tags = $this->get_ignore_tags();
 
-		$body = $this->dom->getElementsByTagName( 'body' )->item( 0 );
+		$body = $this->get_body_node();
 		$this->strip_tags( $body, $blacklisted_tags );
 		$this->strip_attributes_recursive( $body, $blacklisted_attributes, $blacklisted_protocols, $ignore_tags);
 	}
@@ -27,8 +27,8 @@ class AMP_Blacklist_Sanitizer extends AMP_Base_Sanitizer {
 
 		if ( $node->hasAttributes() ) {
 			$length = $node->attributes->length;
-			for( $i = $length - 1; $i >= 0; $i--) {
-				$attribute = $node->attributes->item($i);
+			for ( $i = $length - 1; $i >= 0; $i-- ) {
+				$attribute = $node->attributes->item( $i );
 				$attribute_name = strtolower( $attribute->name );
 				if ( in_array( $attribute_name, $bad_attributes ) ) {
 					$node->removeAttribute( $attribute_name );
@@ -62,12 +62,21 @@ class AMP_Blacklist_Sanitizer extends AMP_Base_Sanitizer {
 		}
 	}
 
-	private function strip_tags( $node, $tags ) {
-		foreach ( $tags as $tag_name ) {
+	private function strip_tags( $node, $tag_names ) {
+		foreach ( $tag_names as $tag_name ) {
 			$elements = $node->getElementsByTagName( $tag_name );
-			if ( $elements->length ) {
-				foreach ( $elements as $element ) {
-					$element->parentNode->removeChild( $element );
+			$length = $elements->length;
+			if ( 0 === $length ) {
+				continue;
+			}
+
+			for ( $i = $length - 1; $i >= 0; $i-- ) {
+				$element = $elements->item( $i );
+				$parent_node = $element->parentNode;
+				$parent_node->removeChild( $element );
+
+				if ( 'body' !== $parent_node->nodeName && AMP_DOM_Utils::is_node_empty( $parent_node ) ) {
+					$parent_node->parentNode->removeChild( $parent_node );
 				}
 			}
 		}

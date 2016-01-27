@@ -1,6 +1,6 @@
 <?php
 
-require_once( dirname( __FILE__ ) . '/class-amp-base-embed-handler.php' );
+require_once( AMP__DIR__ . '/includes/embeds/class-amp-base-embed-handler.php' );
 
 // Much of this class is borrowed from Jetpack embeds
 class AMP_YouTube_Embed_Handler extends AMP_Base_Embed_Handler {
@@ -59,17 +59,19 @@ class AMP_YouTube_Embed_Handler extends AMP_Base_Embed_Handler {
 		) );
 
 		if ( empty( $args['video_id'] ) ) {
-			return AMP_HTML_Utils::build_tag( 'a', array( 'href' => esc_url( $args['url'] ), 'class' => 'amp-wp-fallback' ), esc_html( $args['url'] ) );
+			return AMP_HTML_Utils::build_tag( 'a', array( 'href' => esc_url( $args['url'] ), 'class' => 'amp-wp-embed-fallback' ), esc_html( $args['url'] ) );
 		}
 
 		$this->did_convert_elements = true;
 
 		return AMP_HTML_Utils::build_tag(
 			'amp-youtube',
-			wp_parse_args( array(
+			array(
 				'data-videoid' => $args['video_id'],
 				'layout' => 'responsive',
-			), $this->args )
+				'width' => $this->args['width'],
+				'height' => $this->args['height'],
+			)
 		);
 	}
 

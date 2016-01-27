@@ -1,23 +1,35 @@
 <?php
 
-require_once( dirname( __FILE__ ) . '/includes/class-amp-dom-utils.php' );
-
-require_once( dirname( __FILE__ ) . '/includes/sanitizers/class-amp-base-sanitizer.php' );
-require_once( dirname( __FILE__ ) . '/includes/embeds/class-amp-base-embed-handler.php' );
+require_once( AMP__DIR__ . '/includes/utils/class-amp-dom-utils.php' );
+require_once( AMP__DIR__ . '/includes/sanitizers/class-amp-base-sanitizer.php' );
+require_once( AMP__DIR__ . '/includes/embeds/class-amp-base-embed-handler.php' );
 
 class AMP_Content {
 	private $content;
-	private $scripts = array();
+	private $amp_content = '';
+	private $amp_scripts = array();
 	private $args = array();
+	private $embed_handler_classes = array();
+	private $sanitizer_classes = array();
 
 	public function __construct( $content, $embed_handler_classes, $sanitizer_classes, $args = array() ) {
 		$this->content = $content;
 		$this->args = $args;
 		$this->embed_handler_classes = $embed_handler_classes;
 		$this->sanitizer_classes = $sanitizer_classes;
+
+		$this->transform();
 	}
 
-	public function transform() {
+	public function get_amp_content() {
+		return $this->amp_content;
+	}
+
+	public function get_amp_scripts() {
+		return $this->amp_scripts;
+	}
+
+	private function transform() {
 		$content = $this->content;
 
 		// First, embeds + the_content filter
@@ -28,15 +40,11 @@ class AMP_Content {
 		// Then, sanitize to strip and/or convert non-amp content
 		$content = $this->sanitize( $content );
 
-		return $content;
-	}
-
-	public function get_scripts() {
-		return $this->scripts;
+		$this->amp_content = $content;
 	}
 
 	private function add_scripts( $scripts ) {
-		$this->scripts = array_merge( $this->scripts, $scripts );
+		$this->amp_scripts = array_merge( $this->amp_scripts, $scripts );
 	}
 
 	private function register_embed_handlers() {
@@ -46,7 +54,7 @@ class AMP_Content {
 			$embed_handler = new $embed_handler_class( array_merge( $this->args, $args ) );
 
 			if ( ! is_subclass_of( $embed_handler, 'AMP_Base_Embed_Handler' ) ) {
-				_doing_it_wrong( sprintf( '%s::%s', __CLASS__, __METHOD__ ), __( 'Embed Handler must extend `AMP_Embed_Handler`', 'amp' ), '0.1' );
+				_doing_it_wrong( __METHOD__, sprintf( __( 'Embed Handler (%s) must extend `AMP_Embed_Handler`', 'amp' ), $embed_handler_class ), '0.1' );
 				continue;
 			}
 
@@ -71,7 +79,7 @@ class AMP_Content {
 			$sanitizer = new $sanitizer_class( $dom, array_merge( $this->args, $args ) );
 
 			if ( ! is_subclass_of( $sanitizer, 'AMP_Base_Sanitizer' ) ) {
-				_doing_it_wrong( sprintf( '%s::%s', __CLASS__, __METHOD__ ), __( 'Sanitizer must extend `AMP_Base_Sanitizer`', 'amp' ), '0.1' );
+				_doing_it_wrong( __METHOD__, sprintf( __( 'Sanitizer (%s) must extend `AMP_Base_Sanitizer`', 'amp' ), esc_html( $sanitizer_class ) ), '0.1' );
 				continue;
 			}
 

@@ -1,6 +1,6 @@
 <?php
 
-require_once( dirname( __FILE__ ) . '/class-amp-base-embed-handler.php' );
+require_once( AMP__DIR__ . '/includes/embeds/class-amp-base-embed-handler.php' );
 
 // Much of this class is borrowed from Jetpack embeds
 class AMP_Twitter_Embed_Handler extends AMP_Base_Embed_Handler {
@@ -48,10 +48,15 @@ class AMP_Twitter_Embed_Handler extends AMP_Base_Embed_Handler {
 
 		$this->did_convert_elements = true;
 
-		return AMP_HTML_Utils::build_tag( 'amp-twitter', array_merge( $this->args, array(
-			'data-tweetid' => $id,
-			'layout' => 'responsive',
-		) ) );
+		return AMP_HTML_Utils::build_tag(
+			'amp-twitter',
+			array(
+				'data-tweetid' => $id,
+				'layout' => 'responsive',
+				'width' => $this->args['width'],
+				'height' => $this->args['height'],
+			)
+		);
 	}
 
 	function oembed( $matches, $attr, $url, $rawattr ) {

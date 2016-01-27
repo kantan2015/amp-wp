@@ -1,6 +1,6 @@
 <?php
 
-require_once( dirname( __FILE__ ) . '/class-amp-base-sanitizer.php' );
+require_once( AMP__DIR__ . '/includes/sanitizers/class-amp-base-sanitizer.php' );
 
 /**
  * Converts <iframe> tags to <amp-iframe>
@@ -25,7 +25,7 @@ class AMP_Iframe_Sanitizer extends AMP_Base_Sanitizer {
 		return array( self::$script_slug => self::$script_src );
 	}
 
-	public function sanitize( $amp_attributes = array() ) {
+	public function sanitize() {
 		$nodes = $this->dom->getElementsByTagName( self::$tag );
 		$num_nodes = $nodes->length;
 		if ( 0 === $num_nodes ) {
@@ -49,7 +49,6 @@ class AMP_Iframe_Sanitizer extends AMP_Base_Sanitizer {
 
 			$new_attributes = $this->filter_attributes( $old_attributes );
 			$new_attributes = $this->enforce_sizes_attribute( $new_attributes );
-			$new_attributes = array_merge( $new_attributes, $amp_attributes );
 
 			$new_node = AMP_DOM_Utils::create_node( $this->dom, 'amp-iframe', $new_attributes );
 
@@ -62,8 +61,9 @@ class AMP_Iframe_Sanitizer extends AMP_Base_Sanitizer {
 			if ( 'p' === strtolower( $parent_node->tagName ) ) {
 				// AMP does not like iframes in p tags
 				$parent_node->removeChild( $node );
-				$parent_node->parentNode->insertBefore( $new_node , $parent_node->nextSibling);
-				if( $parent_node->childNodes->length == 0 && empty( $parent_node->textContent ) ) {
+				$parent_node->parentNode->insertBefore( $new_node, $parent_node->nextSibling );
+
+				if ( AMP_DOM_Utils::is_node_empty( $parent_node ) ) {
 					$parent_node->parentNode->removeChild( $parent_node );
 				}
 			} else {
@@ -90,7 +90,7 @@ class AMP_Iframe_Sanitizer extends AMP_Base_Sanitizer {
 				case 'allowfullscreen':
 				case 'allowtransparency':
 					if ( 'false' !== $value ) {
-						$out[ $name ] = 'true';
+						$out[ $name ] = '';
 					}
 					break;
 
@@ -108,7 +108,6 @@ class AMP_Iframe_Sanitizer extends AMP_Base_Sanitizer {
 
 	private function build_placeholder( $parent_attributes ) {
 		$placeholder_node = AMP_DOM_Utils::create_node( $this->dom, 'div', array(
-			'layout' => 'fill',
 			'placeholder' => '',
 			'class' => 'amp-wp-iframe-placeholder',
 		) );

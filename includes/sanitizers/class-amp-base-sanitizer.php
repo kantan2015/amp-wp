@@ -12,10 +12,14 @@ abstract class AMP_Base_Sanitizer {
 		$this->args = array_merge( $this->DEFAULT_ARGS, $args );
 	}
 
-	abstract public function sanitize( $amp_attributes = array() );
+	abstract public function sanitize();
 
 	public function get_scripts() {
 		return array();
+	}
+
+	protected function get_body_node() {
+		return $this->dom->getElementsByTagName( 'body' )->item( 0 );
 	}
 
 	/**
@@ -42,7 +46,7 @@ abstract class AMP_Base_Sanitizer {
 
 		$attributes['sizes'] = sprintf( '(min-width: %1$dpx) %1$dpx, 100vw', absint( $max_width ) );
 
-		$class = 'wp-amp-enforced-sizes';
+		$class = 'amp-wp-enforced-sizes';
 		if ( isset( $attributes['class'] ) ) {
 			$attributes['class'] .= ' ' . $class;
 		} else {
