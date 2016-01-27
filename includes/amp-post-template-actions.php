@@ -25,7 +25,7 @@ function amp_post_template_add_scripts( $amp_template ) {
 	<?php
 }
 
-add_action( 'amp_post_template_head', 'amp_post_template_add_schemaorg_metadata' );
+//add_action( 'amp_post_template_head', 'amp_post_template_add_schemaorg_metadata' );
 function amp_post_template_add_schemaorg_metadata( $amp_template ) {
 	?>
 	<script type="application/ld+json"><?php echo json_encode( $amp_template->get( 'metadata' ) ); ?></script>
