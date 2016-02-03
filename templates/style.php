@@ -1,4 +1,3 @@
-<style amp-custom>
 /* Generic WP styling */
 amp-img.alignright { float: right; margin: 0 0 1em 1em; }
 amp-img.alignleft { float: left; margin: 0 1em 1em 0; }
@@ -196,4 +195,3 @@ amp-vine {
 	background-size: 48px 48px;
 	min-height: 48px;
 }
-</style>

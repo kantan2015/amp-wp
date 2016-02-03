@@ -121,7 +121,6 @@ class AMP_Post_Template {
 				'@type' => 'Person',
 				'name' => $post_author->display_name,
 			),
-			'image' => $this->get_post_image_metadata(),
 		);
 
 		$site_icon_url = $this->get( 'site_icon_url' );
@@ -134,7 +133,12 @@ class AMP_Post_Template {
 			);
 		}
 
-		$this->add_data_by_key( 'metadata', $metadata );
+		$image_metadata = $this->get_post_image_metadata();
+		if ( $image_metadata ) {
+			$metadata['image'] = $image_metadata;
+		}
+
+		$this->add_data_by_key( 'metadata', apply_filters( 'amp_post_template_metadata', $metadata, $this->post ) );
 	}
 
 	private function build_post_content() {
@@ -198,7 +202,7 @@ class AMP_Post_Template {
 
 		$post_image_src = wp_get_attachment_image_src( $post_image_id, 'full' );
 
-		if ( $post_image_src ) {
+		if ( is_array( $post_image_src ) ) {
 			$post_image_meta = array(
 				'@type' => 'ImageObject',
 				'url' => $post_image_src[0],

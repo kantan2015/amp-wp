@@ -16,9 +16,27 @@ You can tweak small pieces of the template or the entire thing depending on your
 
 ### Theme Mods
 
-(This still needs to be implemented.)
-
 The default template will attempt to draw from various theme mods, such as site icon and background and header color/image, if supported by the active theme.
+
+#### Site Icon
+
+If you add a site icon, we will automatically replace the WordPress logo in the template.
+
+If you'd prefer to do it via code:
+
+```php
+add_filter( 'amp_post_template_data', 'xyz_amp_set_site_icon_url' );
+
+function xyz_amp_set_site_icon_url( $data ) {
+	// Ideally a 32x32 image
+	$data[ 'site_icon_url' ] = get_stylesheet_directory_uri() . '/images/amp-site-icon.png';
+	return $data;
+}
+```
+
+#### Custom Header
+
+This needs to be implemented.
 
 ### Template Tweaks
 
@@ -51,7 +69,27 @@ function xyz_set_custom_placeholder_image( $data ) {
 
 Note: The path must pass the default criteria set out by [`validate_file`](https://developer.wordpress.org/reference/functions/validate_file/) and must be somewhere in a subfolder of `WP_CONTENT_DIR`.
 
-#### Meta
+#### Schema.org (JSON) Metadata
+
+The plugin adds some default metadata to enable ["Rich Snippet" support](https://developers.google.com/structured-data/rich-snippets/articles). You can modify this using the `amp_post_template_metadata` filter. The following changes the type annotation to `NewsArticle` (from the default `BlogPosting`) and overrides the default Publisher Logo.
+
+```
+add_filter( 'amp_post_template_metadata', 'xyz_amp_modify_json_metadata', 10, 2 );
+
+function xyz_amp_modify_json_metadata( $metadata, $post ) {
+	$metadata['@type'] = 'NewsArticle';
+
+	$metadata['publisher']['logo'] = array(
+		'@type' => 'ImageObject',
+		'url' => get_template_directory_uri() . '/images/my-amp-metadata-logo.png',
+		'height' => 60,
+		'width' => 600,
+	);
+	return $metadata;
+}
+```
+
+#### Template Meta (Author, Date, etc.)
 
 For the meta section of the template (i.e. author, date, taxonomies, etc.), you can override templates for the existing sections, remove them, add new ones.
 
@@ -137,12 +175,34 @@ Then, in `templates/xyz-meta-comment-count.php`:
 
 #### Custom CSS
 
+##### Rule Additions
+
+If you want to append to the existing CSS rules (e.g. styles for a custom embed handler), you can use the `amp_post_template_css` action: 
+
+```php
+add_action( 'amp_post_template_css', 'xyz_amp_my_additional_css_styles' );
+
+function xyz_amp_my_additional_css_styles( $amp_template ) {
+	// only CSS here please...
+	?>
+	.byline amp-img {
+		border-radius: 0; /* we don't want round avatars! */
+	}
+	.my-custom-class {
+		color: blue;
+	}
+	<?php
+}
+```
+
+##### Completely Override CSS
+
 If you'd prefer to use your own styles, you can either:
 
 - Create a folder in your theme called `amp` and add a file called `style.php` with your custom CSS.
-- Specify a custom template using the `amp_post_template_file` filter for `'style' === $type`.
+- Specify a custom template using the `amp_post_template_file` filter for `'style' === $type`. See the "Override" examples in the "Meta" section for examples.
 
-See the "Override" examples in the "Meta" section for examples.
+Note: the file should only include CSS, not the `<style>` opening and closing tag.
 
 #### Head and Footer
 
@@ -197,6 +257,12 @@ do_action( 'amp_post_template_head', $this );
 
 ```
 do_action( 'amp_post_template_footer', $this );
+```
+
+* Within your `amp-custom` `style` tags, you must trigger the `amp_post_template_css` action: 
+
+```php
+do_action( 'amp_post_template_css', $this );
 ```
 
 * You must include [all required mark-up](https://www.ampproject.org/docs/get_started/create/basic_markup.html) that isn't already output via the `amp_post_template_head` action.
@@ -358,3 +424,32 @@ function xyz_amp_add_ad_sanitizer( $sanitizer_classes, $post ) {
 	return $sanitizer_classes;
 }
 ```
+
+## Custom Post Type Support
+
+By default, the plugin only creates AMP content for posts. You can add support for other post_types like so (assume our post_type slug is `xyz-review`):
+
+```php
+add_action( 'amp_init', 'xyz_amp_add_review_cpt' );
+function xyz_amp_add_review_cpt() {
+	add_post_type_support( 'xyz-review', AMP_QUERY_VAR );
+}
+```
+
+You'll need to flush your rewrite rules after this.
+
+If you want a custom template for your post type:
+
+```
+add_filter( 'amp_post_template_file', 'xyz_amp_set_review_template', 10, 3 );
+
+function xyz_amp_set_custom_template( $file, $type, $post ) {
+	if ( 'single' === $type && 'xyz-review' === $post->post_type ) {
+		$file = dirname( __FILE__ ) . '/templates/my-amp-review-template.php';
+	}
+	return $file;
+}
+
+```
+
+We may provide better ways to handle this in the future.
