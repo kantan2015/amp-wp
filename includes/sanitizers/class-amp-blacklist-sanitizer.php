@@ -57,6 +57,8 @@ class AMP_Blacklist_Sanitizer extends AMP_Base_Sanitizer {
 						$node->setAttribute( $attribute_name, $new_value );
 					}
 
+				} elseif ( 'del' === $node_name && 'datetime' === $attribute_name ) {
+					$node->removeAttribute( $attribute_name );
 				}
 				if (in_array( $node->nodeName, $ignore_tags )) {
 					continue;
