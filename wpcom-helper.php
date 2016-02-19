@@ -2,8 +2,6 @@
 
 // WPCOM-specific things
 
-define( 'AMP_DEV_MODE', defined( 'WPCOM_SANDBOXED' ) && WPCOM_SANDBOXED );
-
 // Add stats pixel
 add_filter( 'amp_post_template_footer', 'jetpack_amp_add_stats_pixel' );
 
@@ -112,8 +110,20 @@ function wpcom_amp_add_blavatar( $metadata, $post ) {
 	return $metadata;
 }
 
-// If images are being served from Photon or WP.com files, try extracting the size using querystring.
-add_action( 'amp_extract_image_dimensions', 'wpcom_amp_extract_image_dimensions_from_querystring', 9, 2 ); // Hook in before the default extractors
+add_action( 'amp_extract_image_dimensions_callbacks_registered', 'wpcom_amp_extract_image_dimensions_add_custom_callbacks' );
+function wpcom_amp_extract_image_dimensions_add_custom_callbacks() {
+	// If images are being served from Photon or WP.com files, try extracting the size using querystring.
+	add_action( 'amp_extract_image_dimensions', 'wpcom_amp_extract_image_dimensions_from_querystring', 9, 2 ); // Hook in before the default extractors
+
+	// Uses a special wpcom lib (wpcom_getimagesize) to extract dimensions as a last resort if we weren't able to figure them out.
+	add_action( 'amp_extract_image_dimensions', 'wpcom_amp_extract_image_dimensions_from_getimagesize', 99, 2 ); // Our last resort, so run late
+
+	// This doesn't work well on WP.com and doesn't scale well for VIP sites (see https://github.com/Automattic/amp-wp/issues/207)
+	remove_filter( 'amp_extract_image_dimensions', array( 'AMP_Image_Dimension_Extractor', 'extract_from_attachment_metadata' ) );
+	// The wpcom override obviates this one, so take it out.
+	remove_filter( 'amp_extract_image_dimensions', array( 'AMP_Image_Dimension_Extractor', 'extract_by_downloading_image' ), 100 );
+}
+
 function wpcom_amp_extract_image_dimensions_from_querystring( $dimensions, $url ) {
 	if ( is_array( $dimensions ) ) {
 		return $dimensions;
@@ -135,8 +145,6 @@ function wpcom_amp_extract_image_dimensions_from_querystring( $dimensions, $url 
 	return false;
 }
 
-// Uses a special wpcom lib (wpcom_getimagesize) to extract dimensions as a last resort if we weren't able to figure them out.
-add_action( 'amp_extract_image_dimensions', 'wpcom_amp_extract_image_dimensions_from_getimagesize', 100, 2 ); // Our last resort
 function wpcom_amp_extract_image_dimensions_from_getimagesize( $dimensions, $url ) {
 	if ( is_array( $dimensions ) ) {
 		return $dimensions;

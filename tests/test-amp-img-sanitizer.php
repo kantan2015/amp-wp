@@ -1,6 +1,15 @@
 <?php
 
 class AMP_Img_Sanitizer_Test extends WP_UnitTestCase {
+	public static function force_remove_extraction_callbacks() {
+		remove_all_filters( 'amp_extract_image_dimensions' );
+	}
+
+	public function setUp() {
+		parent::setUp();
+		add_action( 'amp_extract_image_dimensions_callbacks_registered', array( __CLASS__, 'force_remove_extraction_callbacks' ) );
+	}
+
 	public function get_data() {
 		return array(
 			'no_images' => array(
@@ -26,6 +35,11 @@ class AMP_Img_Sanitizer_Test extends WP_UnitTestCase {
 			'image_with_end_tag' => array(
 				'<img src="http://placehold.it/350x150" width="350" height="150" alt="Placeholder!"></img>',
 				'<amp-img src="http://placehold.it/350x150" width="350" height="150" alt="Placeholder!" sizes="(min-width: 350px) 350px, 100vw" class="amp-wp-enforced-sizes"></amp-img>',
+			),
+
+			'image_with_on_attribute' => array(
+				'<img src="http://placehold.it/350x150" on="tap:my-lightbox" />',
+				'<amp-img src="http://placehold.it/350x150" on="tap:my-lightbox"></amp-img>',
 			),
 
 			'image_with_blacklisted_attribute' => array(
