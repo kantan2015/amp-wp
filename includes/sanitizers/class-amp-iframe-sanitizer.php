@@ -41,7 +41,7 @@ class AMP_Iframe_Sanitizer extends AMP_Base_Sanitizer {
 				$node->parentNode->removeChild( $node );
 				continue;
 			}
-			else if ( substr ( trim ( $old_attributes['src'] ), 0, 5 ) === "http:" ) {
+			if ( substr( trim( $old_attributes['src'] ), 0, 5 ) === "http:" ) {
 				$node->parentNode->removeChild( $node );
 				continue;
 			}
