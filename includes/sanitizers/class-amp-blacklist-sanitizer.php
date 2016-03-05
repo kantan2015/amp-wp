@@ -48,14 +48,8 @@ class AMP_Blacklist_Sanitizer extends AMP_Base_Sanitizer {
 						$node->removeAttribute( $attribute_name );
 						continue;
 					}
-				} elseif ( 'a' === $node_name && 'rel' === $attribute_name ) {
-					$old_value = $attribute->value;
-					$new_value = trim( preg_replace( self::PATTERN_REL_WP_ATTACHMENT, '', $old_value ) );
-					if ( empty( $new_value ) ) {
-						$node->removeAttribute( $attribute_name );
-					} elseif ( $old_value !== $new_value ) {
-						$node->setAttribute( $attribute_name, $new_value );
-					}
+				} elseif ( 'a' === $node_name ) {
+					$this->sanitize_a_attribute( $node, $attribute );
 				}
 				if (in_array( $node->nodeName, $ignore_tags )) {
 					continue;
@@ -91,6 +85,31 @@ class AMP_Blacklist_Sanitizer extends AMP_Base_Sanitizer {
 		}
 	}
 
+	private function sanitize_a_attribute( $node, $attribute ) {
+		$attribute_name = strtolower( $attribute->name );
+
+		if ( 'rel' === $attribute_name ) {
+			$old_value = $attribute->value;
+			$new_value = trim( preg_replace( self::PATTERN_REL_WP_ATTACHMENT, '', $old_value ) );
+			if ( empty( $new_value ) ) {
+				$node->removeAttribute( $attribute_name );
+			} elseif ( $old_value !== $new_value ) {
+				$node->setAttribute( $attribute_name, $new_value );
+			}
+		} elseif ( 'rev' === $attribute_name ) {
+			// rev removed from HTML5 spec, which was used by Jetpack Markdown.
+			$node->removeAttribute( $attribute_name );
+		} elseif ( 'target' === $attribute_name ) {
+		       if ( '_blank' === $attribute->value || '_new' === $attribute->value ) {
+			       // _new is not allowed; swap with _blank
+			       $node->setAttribute( $attribute_name, '_blank' );
+		       } else {
+			       // only _blank is allowed
+			       $node->removeAttribute( $attribute_name );
+		       }
+		}
+	}
+
 	private function get_blacklisted_protocols() {
 		return array(
 			'javascript',
@@ -108,12 +127,12 @@ class AMP_Blacklist_Sanitizer extends AMP_Base_Sanitizer {
 			'param',
 			'applet',
 			'form',
+			'label',
 			'input',
 			'textarea',
 			'select',
 			'option',
 			'link',
-			'meta',
 
 			// These are converted into amp-* versions
 			//'img',

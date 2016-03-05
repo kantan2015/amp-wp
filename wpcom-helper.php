@@ -2,66 +2,16 @@
 
 // WPCOM-specific things
 
-// Add stats pixel
-add_filter( 'amp_post_template_footer', 'jetpack_amp_add_stats_pixel' );
-
-function jetpack_amp_add_stats_pixel( $amp_template ) {
-	?>
-	<amp-pixel src="<?php echo esc_url( wpcom_amp_get_pageview_url() ); ?>"></amp-pixel>
-	<amp-pixel src="<?php echo esc_url( wpcom_amp_get_mc_url() ); ?>"></amp-pixel>
-	<amp-pixel src="<?php echo esc_url( wpcom_amp_get_stats_extras_url() ); ?>"></amp-pixel>
-	<?php
-}
-
-function wpcom_amp_get_pageview_url() {
-	$stats_info = stats_collect_info();
-	$a = $stats_info['st_go_args'];
-
-	$url = add_query_arg( array(
-		'rand' => 'RANDOM', // AMP placeholder
-		'host' => rawurlencode( $_SERVER['HTTP_HOST'] ),
-		'ref' => 'DOCUMENT_REFERRER', // AMP placeholder
-	), 'https://pixel.wp.com/b.gif'  );
-	$url .= '&' . stats_array_string( $a );
-	return $url;
-}
-
-function wpcom_amp_get_mc_url() {
-	return add_query_arg( array(
-		'rand' => 'RANDOM', // special amp placeholder
-		'v' => 'wpcom-no-pv',
-		'x_amp-views' => 'view',
-	), 'https://pixel.wp.com/b.gif' );
-}
-
-function wpcom_amp_get_stats_extras_url() {
-	$stats_extras = stats_extras();
-	if ( ! $stats_extras ) {
-		return false;
-	}
-
-	$url = add_query_arg( array(
-		'rand' => 'RANDOM', // special amp placeholder
-		'v' => 'wpcom-no-pv',
-	), 'https://pixel.wp.com/b.gif' );
-
-	$url .= '&' . stats_array_string( array(
-		'crypt' => base64_encode(
-			wp_encrypt_plus(
-				ltrim(
-					add_query_arg( $stats_extras, ''),
-				'?'),
-			8, 'url')
-		)
-	) );
-
-	return $url;
-}
-
 add_action( 'pre_amp_render_post', 'jetpack_amp_disable_the_content_filters' );
 
 function jetpack_amp_disable_the_content_filters( $post_id ) {
+	// Shortcode overrides
+	require_once( dirname( __FILE__ ) . '/wpcom/shortcodes.php' );
+
 	add_filter( 'post_flair_disable', '__return_true', 99 );
+	add_filter( 'videopress_show_2015_player', '__return_true' );
+	add_filter( 'protected_embeds_use_form_post', '__return_false' );
+
 	remove_filter( 'the_title', 'widont' );
 
 	remove_filter( 'pre_kses', array( 'Filter_Embedded_HTML_Objects', 'filter' ), 11 );
@@ -79,33 +29,75 @@ function jetpack_amp_add_og_tags( $amp_template ) {
 add_filter( 'amp_post_template_metadata', 'jetpack_amp_post_template_metadata', 10, 2 );
 
 function jetpack_amp_post_template_metadata( $metadata, $post ) {
-	$metadata = wpcom_amp_add_blavatar( $metadata, $post );
+	if ( isset( $metadata['publisher'] ) && ! isset( $metadata['publisher']['logo'] ) ) {
+		$metadata = wpcom_amp_add_blavatar_to_metadata( $metadata, $post );
+	}
+
+	if ( ! isset( $metadata['image'] ) ) {
+		$metadata = wpcom_amp_add_image_to_metadata( $metadata, $post );
+	}
+
 	return $metadata;
 }
 
-function wpcom_amp_add_blavatar( $metadata, $post ) {
+function wpcom_amp_add_blavatar_to_metadata( $metadata, $post ) {
 	if ( ! function_exists( 'blavatar_domain' ) ) {
 		return $metadata;
 	}
 
-	if ( ! isset( $metadata['publisher'] ) ) {
-		return $metadata;
-	}
-
-	if ( isset( $metadata['publisher']['logo'] ) ) {
-		return $metadata;
-	}
-
 	$size = 60;
-	$blavatar_domain = blavatar_domain( site_url() );
-	if ( blavatar_exists( $blavatar_domain ) ) {
-		$metadata['publisher']['logo'] = array(
-			'@type' => 'ImageObject',
-			'url' => blavatar_url( $blavatar_domain, 'img', $size, false, true ),
-			'width' => $size,
-			'height' => $size,
-		);
+	$metadata['publisher']['logo'] = array(
+		'@type' => 'ImageObject',
+		'url' => blavatar_url( blavatar_domain( site_url() ), 'img', $size, staticize_subdomain( 'https://wordpress.com/i/favicons/apple-touch-icon-60x60.png' ) ),
+		'width' => $size,
+		'height' => $size,
+	);
+
+	return $metadata;
+}
+
+function wpcom_amp_add_image_to_metadata( $metadata, $post ) {
+	if ( ! class_exists( 'Jetpack_PostImages' ) ) {
+		return wpcom_amp_add_fallback_image_to_metadata( $metadata );
 	}
+
+	$image = Jetpack_PostImages::get_image( $post->ID, array(
+		'fallback_to_avatars' => true,
+		'avatar_size' => 200,
+		// AMP already attempts these
+		'from_thumbnail' => false,
+		'from_attachment' => false,
+	) );
+
+	if ( empty( $image ) ) {
+		return wpcom_amp_add_fallback_image_to_metadata( $metadata );
+	}
+
+	if ( ! isset( $image['src_width'] ) ) {
+		$dimensions = wpcom_amp_getimagesize( $image['src'] );
+		if ( $dimensions ) {
+			$image['src_width'] = $dimensions[0];
+			$image['src_height'] = $dimensions[1];
+		}
+	}
+
+	$metadata['image'] = array(
+		'@type' => 'ImageObject',
+		'url' => $image['src'],
+		'width' => $image['src_width'],
+		'height' => $image['src_height'],
+	);
+
+	return $metadata;
+}
+
+function wpcom_amp_add_fallback_image_to_metadata( $metadata ) {
+	$metadata['image'] = array(
+		'@type' => 'ImageObject',
+		'url' => staticize_subdomain( 'https://wordpress.com/i/blank.jpg' ),
+		'width' => 200,
+		'height' => 200,
+	);
 
 	return $metadata;
 }
@@ -121,7 +113,7 @@ function wpcom_amp_extract_image_dimensions_add_custom_callbacks() {
 	// This doesn't work well on WP.com and doesn't scale well for VIP sites (see https://github.com/Automattic/amp-wp/issues/207)
 	remove_filter( 'amp_extract_image_dimensions', array( 'AMP_Image_Dimension_Extractor', 'extract_from_attachment_metadata' ) );
 	// The wpcom override obviates this one, so take it out.
-	remove_filter( 'amp_extract_image_dimensions', array( 'AMP_Image_Dimension_Extractor', 'extract_by_downloading_image' ), 100 );
+	remove_filter( 'amp_extract_image_dimensions', array( 'AMP_Image_Dimension_Extractor', 'extract_by_downloading_image' ), 999, 2 );
 }
 
 function wpcom_amp_extract_image_dimensions_from_querystring( $dimensions, $url ) {
@@ -150,6 +142,10 @@ function wpcom_amp_extract_image_dimensions_from_getimagesize( $dimensions, $url
 		return $dimensions;
 	}
 
+	return wpcom_amp_getimagesize( $url );
+}
+
+function wpcom_amp_getimagesize( $url ) {
 	if ( ! function_exists( 'require_lib' ) ) {
 		return false;
 	}

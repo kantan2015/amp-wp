@@ -14,7 +14,7 @@ class AMP_Blacklist_Sanitizer_Test extends WP_UnitTestCase {
 			),
 
 			'multiple_blacklisted_tags_only' => array(
-				'<input type="text" /><script>alert("")</script><style>body{ color: red; }</style>',
+				'<input type="text" /><script>alert("")</script><style>body{ color: red; }</style><label>This is a label</label>',
 				''
 			),
 
@@ -76,7 +76,32 @@ class AMP_Blacklist_Sanitizer_Test extends WP_UnitTestCase {
 			'a_with_attachment_rel_plus_another_valid_value' => array(
 				'<a href="http://example.com" rel="attachment wp-att-1686">Link</a>',
 				'<a href="http://example.com" rel="attachment">Link</a>',
-			)
+			),
+
+			'a_with_rev' => array(
+				'<a href="http://example.com" rev="footnote">Link</a>',
+				'<a href="http://example.com">Link</a>',
+			),
+
+			'a_with_target_new' => array(
+				'<a href="http://example.com" target="_new">Link</a>',
+				'<a href="http://example.com" target="_blank">Link</a>',
+			),
+
+			'a_with_target_blank' => array(
+				'<a href="http://example.com" target="_blank">Link</a>',
+				'<a href="http://example.com" target="_blank">Link</a>',
+			),
+
+			'a_with_target_self' => array(
+				'<a href="http://example.com" target="_self">Link</a>',
+				'<a href="http://example.com">Link</a>',
+			),
+
+			'a_with_target_invalid' => array(
+				'<a href="http://example.com" target="boom">Link</a>',
+				'<a href="http://example.com">Link</a>',
+			),
 		);
 	}
 
